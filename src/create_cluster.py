@@ -54,7 +54,7 @@ def wait_for_cluster_creation(cluster_id):
 
 
 def main():
-    """Test create_redshift_cluster()"""
+    """Initiate and wait for redshift cluster deletion"""
 
     config = configparser.ConfigParser()
     config.read('../dwh.cfg')
