@@ -28,6 +28,17 @@ def delete_redshift_cluster(config):
         return response['Cluster']
 
 
+def wait_for_cluster_deletion(cluster_id):
+    while True:
+        try:
+            redshift_client.describe_clusters(ClusterIdentifier=cluster_id)
+        except Exception as e:
+            print(e)
+            break
+        else:
+            time.sleep(60)
+
+
 def delete_iam_role(config):
     """Delete IAM role for redshift"""
     try:
@@ -56,11 +67,20 @@ def main():
     config.read('../dwh.cfg')
 
     cluster_info = delete_redshift_cluster(config)
+
     if cluster_info is not None:
         print(f'Deleting cluster: {cluster_info["ClusterIdentifier"]}')
         print(f'Cluster status: {cluster_info["ClusterStatus"]}')
+
+        print('Waiting for cluster to be deleted...')
+        wait_for_cluster_deletion(cluster_info['ClusterIdentifier'])
+        print('Cluster deleted.')
+
         delete_iam_role(config)
+        print('Role deleted.')
+
         delete_security_group(config)
+        print('Security group deleted.')
 
 
 if __name__ == '__main__':

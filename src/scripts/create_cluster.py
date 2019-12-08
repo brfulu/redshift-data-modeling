@@ -53,7 +53,6 @@ def wait_for_cluster_creation(cluster_id):
             break
         time.sleep(60)
 
-    print(cluster_info)
     return cluster_info
 
 

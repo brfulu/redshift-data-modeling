@@ -55,7 +55,7 @@ cd src/
 
 Create Redshift cluster
 ```
-python -m scripts.create_cluster # take note of Endpoint and Role_ARN output
+python -m scripts.create_cluster # take note of Endpoint, Role_ARN and Security_Group output
 ```
 
 Edit dwh.cfg file

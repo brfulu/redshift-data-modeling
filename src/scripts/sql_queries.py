@@ -117,14 +117,14 @@ staging_events_copy = ("""
     FROM {}
     IAM_ROLE {}
     JSON {};
-""").format(config.get('S3', 'LOG_DATA'), config.get('SECURITY', 'ARN'), config.get('S3', 'LOG_JSONPATH'))
+""").format(config.get('S3', 'LOG_DATA'), config.get('SECURITY', 'ROLE_ARN'), config.get('S3', 'LOG_JSONPATH'))
 
 staging_songs_copy = ("""
     COPY staging_songs
     FROM {}
     IAM_ROLE {}
     FORMAT AS JSON 'auto';
-""").format(config.get('S3', 'SONG_DATA'), config.get('SECURITY', 'ARN'))
+""").format(config.get('S3', 'SONG_DATA'), config.get('SECURITY', 'ROLE_ARN'))
 
 # FINAL TABLES
 
