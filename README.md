@@ -7,6 +7,7 @@ As their data engineer, you are tasked with building an ETL pipeline that extrac
 ### Requirements for running
 - Python3 
 - AWS account
+- Configured aws credentials file (https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 
 ### Project structure explanation
 ```
@@ -57,10 +58,11 @@ Create Redshift cluster
 python -m scripts.create_cluster # take note of Endpoint and Role_ARN output
 ```
 
-Edit dwh.cfg
+Edit dwh.cfg file
 ```
 HOST=<ENTER REDSHIFT ENDPOINT>   # paste Endpoint output from script above
 ARN='<ENTER REDSHIFT ROLE ARN>'  # paste Role_ARN from script above (leave quotes)
+SG_ID=<ENTER SECURITY GROUP ID>  # paste sg_id from output above
 ```
 
 Create schema

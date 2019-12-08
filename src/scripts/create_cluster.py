@@ -6,9 +6,10 @@ from botocore.exceptions import ClientError
 
 redshift_client = boto3.client('redshift', region_name='us-west-2')
 iam_client = boto3.client('iam')
+ec2_client = boto3.client('ec2', region_name='us-west-2')
 
 
-def create_redshift_cluster(config, iam_role_arn):
+def create_redshift_cluster(config, iam_role_arn, cluster_sg_id):
     """Create an Amazon Redshift cluster
 
     The function returns without waiting for the cluster to be fully created.
@@ -27,7 +28,8 @@ def create_redshift_cluster(config, iam_role_arn):
             MasterUsername=config.get('CLUSTER', 'DB_USER'),
             MasterUserPassword=config.get('CLUSTER', 'DB_PASSWORD'),
             Port=config.getint('CLUSTER', 'DB_PORT'),
-            IamRoles=[iam_role_arn]
+            IamRoles=[iam_role_arn],
+            VpcSecurityGroupIds=[cluster_sg_id]
         )
     except ClientError as e:
         print(f'ERROR: {e}')
@@ -55,9 +57,36 @@ def wait_for_cluster_creation(cluster_id):
     return cluster_info
 
 
+def create_cluster_security_group():
+    response = ec2_client.describe_vpcs()
+    vpc_id = response.get('Vpcs', [{}])[0].get('VpcId', '')
+
+    try:
+        response = ec2_client.create_security_group(GroupName='myredshiftsg', Description='Redshift security group',
+                                                    VpcId=vpc_id)
+        security_group_id = response['GroupId']
+        print('Security Group Created %s in vpc %s.' % (security_group_id, vpc_id))
+
+        data = ec2_client.authorize_security_group_ingress(
+            GroupId=security_group_id,
+            IpPermissions=[
+                {'IpProtocol': 'tcp',
+                 'FromPort': 80,
+                 'ToPort': 80,
+                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+                {'IpProtocol': 'tcp',
+                 'FromPort': 5439,
+                 'ToPort': 5439,
+                 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+            ])
+        return security_group_id
+    except ClientError as e:
+        print(e)
+
+
 def create_iam_role(config):
     role = iam_client.create_role(
-        RoleName=config.get('IAM_ROLE', 'ROLE_NAME'),
+        RoleName=config.get('SECURITY', 'ROLE_NAME'),
         Description='Allows Redshift to call AWS services on your behalf',
         AssumeRolePolicyDocument=json.dumps({
             'Version': '2012-10-17',
@@ -70,20 +99,11 @@ def create_iam_role(config):
     )
 
     iam_client.attach_role_policy(
-        RoleName=config.get('IAM_ROLE', 'ROLE_NAME'),
+        RoleName=config.get('SECURITY', 'ROLE_NAME'),
         PolicyArn='arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
     )
 
     return role
-
-
-def get_iam_role(config):
-    try:
-        response = iam_client.get_role(RoleName=config.get('IAM_ROLE', 'ROLE_NAME'))
-    except Exception as e:
-        return None
-    else:
-        return response
 
 
 def main():
@@ -92,11 +112,9 @@ def main():
     config = configparser.ConfigParser()
     config.read('../dwh.cfg')
 
-    iam_role = get_iam_role(config)
-    if iam_role is None:
-        iam_role = create_iam_role(config)
-
-    cluster_info = create_redshift_cluster(config, iam_role['Role']['Arn'])
+    cluster_sg_id = create_cluster_security_group()
+    iam_role = create_iam_role(config)
+    cluster_info = create_redshift_cluster(config, iam_role['Role']['Arn'], cluster_sg_id)
 
     if cluster_info is not None:
         print(f'Creating cluster: {cluster_info["ClusterIdentifier"]}')
@@ -108,6 +126,7 @@ def main():
         print(f'Cluster created.')
         print(f"Endpoint={cluster_info['Endpoint']['Address']}")
         print(f"Role_ARN={iam_role['Role']['Arn']}")
+        print(f"Security_Group={cluster_sg_id}")
 
 
 if __name__ == '__main__':
