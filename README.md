@@ -47,12 +47,30 @@ source venv/bin/activate         # activate virtualenv
 pip install -r requirements.txt  # install requirements
 ```
 
-Run scripts
+Go to source directory
 ```
 cd src/
-python -m scripts.create_cluster  # create redshift cluster
-python -m scripts.create_tables   # create schema
-python -m scripts.etl             # load data into staging tables, transform and load into fact and dim tables
+```
+
+Create Redshift cluster
+```
+python -m scripts.create_cluster # take note of Endpoint and Role_ARN output
+```
+
+Edit dwh.cfg
+```
+HOST=<ENTER REDSHIFT ENDPOINT>   # paste Endpoint output from script above
+ARN='<ENTER REDSHIFT ROLE ARN>'  # paste Role_ARN from script above (leave quotes)
+```
+
+Create schema
+```
+python -m scripts.create_tables
+```
+
+Execute ETL
+```
+python -m scripts.etl # load data into staging tables, transform and load into fact and dim tables
 ```
 
 Check results
@@ -62,4 +80,9 @@ jupyter notebook  # launch jupyter notebook app
 
 # The notebook interface will appear in a new browser window or tab.
 # Navigate to src/notebooks/test.ipynb and run sql queries against Redshift
+```
+
+Delete cluster
+```
+python -m scripts.delete_cluster
 ```
