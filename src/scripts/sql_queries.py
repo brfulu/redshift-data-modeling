@@ -29,11 +29,11 @@ staging_events_table_create = ("""
         location VARCHAR,
         method VARCHAR,
         page VARCHAR,
-        registration FLOAT,
+        registration BIGINT,
         session_id INT,
         song VARCHAR ,
         status INT,
-        ts FLOAT,
+        ts BIGINT,
         user_agent VARCHAR,
         user_id INT
     );
@@ -116,33 +116,74 @@ staging_events_copy = ("""
     COPY staging_events
     FROM {}
     IAM_ROLE {}
-    JSON {}
-    REGION 'us-west-2';
+    JSON {};
 """).format(config.get('S3', 'LOG_DATA'), config.get('IAM_ROLE', 'ARN'), config.get('S3', 'LOG_JSONPATH'))
 
 staging_songs_copy = ("""
     COPY staging_songs
     FROM {}
     IAM_ROLE {}
-    FORMAT AS JSON 'auto'
-    REGION 'us-west-2';
+    FORMAT AS JSON 'auto';
 """).format(config.get('S3', 'SONG_DATA'), config.get('IAM_ROLE', 'ARN'))
 
 # FINAL TABLES
 
 songplay_table_insert = ("""
+    INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
+    SELECT TIMESTAMP 'epoch' + (ts / 1000) * INTERVAL '1 Second ',
+           user_id,
+           level,
+           song_id,
+           artist_id,
+           session_id,
+           location,
+           user_agent
+    FROM staging_events e
+    JOIN staging_songs s ON (e.song = s.title AND e.artist = s.artist_name)
 """)
 
 user_table_insert = ("""
+    INSERT INTO users (user_id, first_name, last_name, gender, level)
+    SELECT DISTINCT (user_id),
+           first_name,
+           last_name,
+           gender,
+           level
+    FROM staging_events
+    WHERE user_id IS NOT NULL;
 """)
 
 song_table_insert = ("""
+    INSERT INTO songs (song_id, title, artist_id, year, duration)
+    SELECT DISTINCT(song_id),
+           title,
+           artist_id,
+           year,
+           duration 
+    FROM staging_songs;
 """)
 
 artist_table_insert = ("""
+    INSERT INTO artists (artist_id, name, location, latitude, longitude)
+    SELECT DISTINCT (artist_id),
+           artist_name,
+           artist_location,
+           artist_latitude,
+           artist_longitude
+    FROM staging_songs
+    WHERE artist_id IS NOT NULL;
 """)
 
 time_table_insert = ("""
+    INSERT INTO time (start_time, hour, day, week, month, year, weekday)
+    SELECT DISTINCT (TIMESTAMP 'epoch' + (ts / 1000) * INTERVAL '1 Second ') as ts_timestamp,
+           EXTRACT(HOUR FROM ts_timestamp),
+           EXTRACT(DAY FROM ts_timestamp),
+           EXTRACT(WEEK FROM ts_timestamp),
+           EXTRACT(MONTH FROM ts_timestamp),
+           EXTRACT(YEAR FROM ts_timestamp),
+           EXTRACT(DOW FROM ts_timestamp)
+    FROM staging_events;
 """)
 
 # QUERY LISTS

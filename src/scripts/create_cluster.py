@@ -4,6 +4,9 @@ import json
 import configparser
 from botocore.exceptions import ClientError
 
+redshift_client = boto3.client('redshift', region_name='us-west-2')
+iam_client = boto3.client('iam')
+
 
 def create_redshift_cluster(config, iam_role_arn):
     """Create an Amazon Redshift cluster
@@ -13,12 +16,11 @@ def create_redshift_cluster(config, iam_role_arn):
     :param config: configparser object; Contains necessary configurations
     :return: dictionary containing cluster information, otherwise None.
     """
-
-    redshift_client = boto3.client('redshift')
     try:
         response = redshift_client.create_cluster(
             ClusterIdentifier='redshift-udacity',
-            ClusterType='single-node',
+            ClusterType='multi-node',
+            NumberOfNodes=4,
             NodeType='dc2.large',
             PubliclyAccessible=True,
             DBName=config.get('CLUSTER', 'DB_NAME'),
@@ -42,9 +44,6 @@ def wait_for_cluster_creation(cluster_id):
     :param cluster_id: string; Cluster identifier
     :return: dictionary containing cluster information.
     """
-
-    redshift_client = boto3.client('redshift')
-
     while True:
         response = redshift_client.describe_clusters(ClusterIdentifier=cluster_id)
         cluster_info = response['Clusters'][0]
@@ -57,7 +56,6 @@ def wait_for_cluster_creation(cluster_id):
 
 
 def create_iam_role(config):
-    iam_client = boto3.client('iam')
     role = iam_client.create_role(
         RoleName=config.get('IAM_ROLE', 'ROLE_NAME'),
         Description='Allows Redshift to call AWS services on your behalf',
@@ -80,7 +78,6 @@ def create_iam_role(config):
 
 
 def get_iam_role(config):
-    iam_client = boto3.client('iam')
     try:
         response = iam_client.get_role(RoleName=config.get('IAM_ROLE', 'ROLE_NAME'))
     except Exception as e:
@@ -111,6 +108,7 @@ def main():
         print(f'Cluster created.')
         print(f"Endpoint={cluster_info['Endpoint']['Address']}")
         print(f"Role_ARN={iam_role['Role']['Arn']}")
+
 
 if __name__ == '__main__':
     main()
