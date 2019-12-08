@@ -4,10 +4,9 @@ A music streaming startup, Sparkify, has grown their user base and song database
 
 As their data engineer, you are tasked with building an ETL pipeline that extracts their data from S3, stages them in Redshift, and transforms data into a set of dimensional tables for their analytics team to continue finding insights in what songs their users are listening to. 
 
-### Requirements for running locally
+### Requirements for running
 - Python3 
-- Docker
-- Docker-Compose 
+- AWS account
 
 ### Project structure explanation
 ```
@@ -51,7 +50,7 @@ pip install -r requirements.txt  # install requirements
 Run scripts
 ```
 cd src/
-python -m scripts.create_clsuter  # create redshift cluster
+python -m scripts.create_cluster  # create redshift cluster
 python -m scripts.create_tables   # create schema
 python -m scripts.etl             # load data into staging tables, transform and load into fact and dim tables
 ```
