@@ -11,7 +11,7 @@ As their data engineer, you are tasked with building an ETL pipeline that extrac
 
 ### Project structure explanation
 ```
-postgres-data-modeling
+redshift-data-modeling
 │   README.md                 # Project description
 |   dwh.cfg                   # Configuration file
 |   requirements.txt          # Python dependencies
